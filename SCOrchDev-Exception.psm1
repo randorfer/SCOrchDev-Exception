@@ -200,7 +200,7 @@ Function Select-CustomException
     Invoking a script block that throws an exception will result in an object where
     the exception we actually care about is hidden in an InnerException property.
     The exception of interest may not always be nested at the same depth (i.e. you may
-    need to do $Exception.InnerException or $Exception.InnerException.InnerException
+    need to do $Exception.InnerException or $Exception.InnerException. InnerException
     to get what you want).
 
     This cmdlet attempts to remove the crud by filtering out select exception types.
