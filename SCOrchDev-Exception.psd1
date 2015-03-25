@@ -12,7 +12,7 @@
 RootModule = '.\SCOrchDev-Exception.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.1'
+ModuleVersion = '1.0.0.1'
 
 # ID used to uniquely identify this module
 GUID = '41d1dfce-c2f0-42e5-b4b0-43eac2226fcd'
@@ -81,7 +81,7 @@ AliasesToExport = '*'
 ModuleList = @('SCOrchDev-Exception')
 
 # List of all files packaged with this module
-FileList = @('SCOrchDev-Exception.psd1', 'SCOrchDev-Exception.psm1')
+FileList = @('SCOrchDev-Exception.psd1', 'SCOrchDev-Exception.psm1', 'LICENSE', 'README.md', 'SCOrchDev-Exception.Tests.ps1')
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess
 # PrivateData = ''
