@@ -78,45 +78,39 @@ Function New-Exception
 #>
 Function Convert-ExceptionToString
 {
-    Param([Parameter(Mandatory=$True)]  $Exception)
-    $CustomException = Select-CustomException -Exception $Exception
+    Param(
+        [Parameter(Mandatory=$True)]
+        [Object]
+        $Exception
+    )
+    
     $ExceptionString = New-Object -TypeName 'System.Text.StringBuilder'
-    if($CustomException)
+
+    $ExceptionInfo = Get-ExceptionInfo -Exception $Exception
+    while($ExceptionInfo -ne $null)
     {
-        $ExceptionInfo = Get-ExceptionInfo -Exception $CustomException
         # NoteProperty properties contain all the properties from the exception that
-        # we care about, so filter on those
-        $ExceptionInfo | Get-Member | Where-Object { $_.MemberType -eq 'NoteProperty' } |
+        # we care about, so filter on those.
+        #
+        # We also need to filter out the InnerException property, since nested exceptions
+        # will be handled by the outer loop.
+        $ExceptionInfo | Get-Member | Where-Object -FilterScript { $_.MemberType -eq 'NoteProperty' } |
+            Where-Object -FilterScript { $_.Name -ne 'InnerException' } |
             ForEach-Object -Process `
             {
                 $PropertyName = $_.Name
-                $ExceptionString.AppendLine("$PropertyName = $($ExceptionInfo."$PropertyName")") | Out-Null
+                if(-not [String]::IsNullOrEmpty($ExceptionInfo."$PropertyName"))
+                {
+                    $ExceptionString.AppendLine("$PropertyName = $($ExceptionInfo."$PropertyName")") | Out-Null
+                }
             }
-    }
-    else
-    {
-        # PowerShell likes to wrap our exceptions in System.Management.Automation.ErrorRecord
-        # nonsense, so we have to unwrap it here to get the real exception.
-        $RealException = Select-FirstValid -Value $Exception.Exception, $Exception
-
-        # Properties which should be included in the human-readable exception string.
-        # The hash key is the identifier that will be used in the output string for the
-        # hash value.
-        #
-        # Values will only be included if they are not null.
-        $PropertiesToLog = @{
-            'Type' = $RealException.GetType().FullName;
-            'Message' = $RealException.Message;
-            'ScriptBlock' = $RealException.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock;
-            'PositionMessage' = $RealException.SerializedRemoteInvocationInfo.PositionMessage;
-        }
-        foreach($Property in $PropertiesToLog.Keys)
+        if($ExceptionInfo.InnerException)
         {
-            if($PropertiesToLog[$Property] -ne $null)
-            {
-                $ExceptionString.AppendLine("$Property = $($PropertiesToLog[$Property])") | Out-Null
-            }
+            $ExceptionString.AppendLine('') | Out-Null
+            $ExceptionString.AppendLine('Which was raised from:') | Out-Null
+            $ExceptionString.AppendLine('') | Out-Null
         }
+        $ExceptionInfo = $ExceptionInfo.InnerException
     }
     return $ExceptionString.ToString()
 }
@@ -130,34 +124,58 @@ Function Convert-ExceptionToString
 #>
 Function Get-ExceptionInfo
 {
-    param([Parameter(Mandatory=$True)] [Object] $Exception)
+    Param(
+        [Parameter(Mandatory=$True)]
+        [Object]
+        $Exception
+    )
 
     $Property = @{}
-    $CustomException = Select-CustomException -Exception $Exception 
-    if($CustomException)
+    $TopLevelExceptionInfo = $null
+    $PreviousExceptionInfo = $null
+    while($Exception -ne $null)
     {
-        $ExceptionInfo = ConvertFrom-Json -InputObject $CustomException
-    }
-    else
-    {
-        # PowerShell likes to wrap our exceptions in System.Management.Automation.ErrorRecord
-        # nonsense, so we have to unwrap it here to get the real exception.
-        $RealException = Select-FirstValid -Value $Exception.Exception, $Exception
-
-        # Properties which should be included in the human-readable exception string.
-        # The hash key is the identifier that will be used in the output string for the
-        # hash value.
-        #
-        # Values will only be included if they are not null.
-        $Property = @{
-            'Type' = $RealException.GetType().FullName -replace '^Deserialized\.', '';
-            'Message' = $RealException.Message;
-            'ScriptBlock' = $RealException.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock;
-            'PositionMessage' = $RealException.SerializedRemoteInvocationInfo.PositionMessage;
+        $CustomException = Select-CustomException -Exception $Exception 
+        if($CustomException)
+        {
+            $ExceptionInfo = ConvertFrom-Json -InputObject $CustomException
         }
-        $ExceptionInfo = New-Object -TypeName 'PSObject' -Property $Property
+        else
+        {
+             # Properties which should be included in the human-readable exception string.
+            # The hash key is the identifier that will be used in the output string for the
+            # hash value.
+            #
+            # Values will only be included if they are not null.
+            $Property = @{
+                'Type'                  = $Exception.GetType().FullName -replace '^Deserialized\.', '';
+                'Message'               = $Exception.Message;
+                'FullyQualifiedErrorId' = $Exception.FullyQualifiedErrorId;
+                'HResult'               = $Exception.HResult;
+                'ScriptBlock'           = $Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock;
+                'PositionMessage'       = $Exception.SerializedRemoteInvocationInfo.PositionMessage;
+                'ScriptStackTrace'      = $Exception.ScriptStackTrace;
+                'StackTrace'            = $Exception.StackTrace;
+                'InnerException'        = $null;
+            }
+            $ExceptionInfo = New-Object -TypeName 'PSObject' -Property $Property
+        }
+
+        if(-not $TopLevelExceptionInfo)
+        {
+            $TopLevelExceptionInfo = $ExceptionInfo
+        }
+        elseif($PreviousExceptionInfo)
+        {
+            $PreviousExceptionInfo.InnerException = $ExceptionInfo
+        }
+
+        $PreviousExceptionInfo = $ExceptionInfo
+        $Exception = ( Select-FirstValid -Value $Exception.Exception, `
+                                                $Exception.InnerException, `
+                                                $Exception.SerializedRemoteException ) -as [Object]
     }
-    return (New-Object -TypeName 'PSObject' -Property $Property)
+    return $TopLevelExceptionInfo -as [Object]
 }
 
 <#
@@ -171,23 +189,24 @@ Function Get-ExceptionInfo
 #>
 Function Select-CustomException
 {
-    param([Parameter(Mandatory=$True)] [Object] $Exception)
+    param(
+        [Parameter(Mandatory=$True)]
+        [Object]
+        $Exception
+    )
 
-    foreach($Exc in @($Exception, $Exception.Exception, $Exception.SerializedRemoteException, $Exception.Message))
+    $TestString = ($Exception -as [String])
+    try
     {
-        $TestString = ($Exc -as [String])
-        try
+        $ExceptionObject = ConvertFrom-Json -InputObject $TestString
+        if($ExceptionObject.'__CUSTOM_EXCEPTION__')
         {
-            $ExceptionObject = ConvertFrom-Json -InputObject $TestString
-            if($ExceptionObject.'__CUSTOM_EXCEPTION__')
-            {
-                return $TestString
-            }
+            return $TestString
         }
-        catch [System.ArgumentException]
-        {
-            # It's not valid JSON, do nothing.
-        }
+    }
+    catch [System.ArgumentException]
+    {
+        # It's not valid JSON, do nothing.
     }
 }
 
