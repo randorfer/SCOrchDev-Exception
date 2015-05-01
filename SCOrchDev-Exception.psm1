@@ -142,7 +142,7 @@ Function Get-ExceptionInfo
         }
         else
         {
-             # Properties which should be included in the human-readable exception string.
+            # Properties which should be included in the human-readable exception string.
             # The hash key is the identifier that will be used in the output string for the
             # hash value.
             #
@@ -171,11 +171,11 @@ Function Get-ExceptionInfo
         }
 
         $PreviousExceptionInfo = $ExceptionInfo
-        $Exception = ( Select-FirstValid -Value $Exception.Exception, `
-                                                $Exception.InnerException, `
-                                                $Exception.SerializedRemoteException ) -as [Object]
+        $Exception = Select-FirstValid -Value $Exception.Exception,
+                                              $Exception.InnerException,
+                                              $Exception.SerializedRemoteException
     }
-    return $TopLevelExceptionInfo -as [Object]
+    return $TopLevelExceptionInfo
 }
 
 <#
