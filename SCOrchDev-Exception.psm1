@@ -11,13 +11,16 @@
 Function Write-Exception
 {
     Param(
-        [Parameter(Mandatory=$True)]  $Exception,
-        [Parameter(Mandatory=$False)] [ValidateSet('Debug', 'Error', 'Verbose', 'Warning')] $Stream = 'Error'
+        [Parameter(Mandatory = $True)]
+        $Exception,
+
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Debug', 'Error', 'Verbose', 'Warning')]
+        $Stream = 'Error'
     )
     $LogCommand = (Get-Command -Name "Write-$Stream")
     $ExceptionString = Convert-ExceptionToString -Exception $Exception
     & $LogCommand -Message "Exception information`r`n------`r`n$ExceptionString" -ErrorAction Continue -WarningAction Continue
-
 }
 
 
@@ -45,15 +48,30 @@ Function Write-Exception
 Function New-Exception
 {
     param(
-        [Parameter(Mandatory=$True, ParameterSetName='Values')]  [String] $Type,
-        [Parameter(Mandatory=$True, ParameterSetName='Values')]  [String] $Message,
-        [Parameter(Mandatory=$False, ParameterSetName='Values')] [Hashtable] $Property = @{},
-        [Parameter(Mandatory=$True, ParameterSetName='ExceptionInfo')] [Object] $ExceptionInfo
+        [Parameter(Mandatory = $True, ParameterSetName = 'Values')]
+        [String]
+        $Type,
+        
+        [Parameter(Mandatory = $True, ParameterSetName = 'Values')]
+        [String]
+        $Message,
+        
+        [Parameter(Mandatory = $False, ParameterSetName = 'Values')]
+        [Hashtable]
+        $Property = @{},
+
+        [Parameter(Mandatory = $True, ParameterSetName = 'ExceptionInfo')]
+        [Object]
+        $ExceptionInfo
     )
     if($ExceptionInfo)
     {
         $Property = @{}
-        ($ExceptionInfo | Get-Member | Where-Object -FilterScript { $_.MemberType -eq 'NoteProperty' }).Name | ForEach-Object -Process `
+        ($ExceptionInfo |
+            Get-Member |
+            Where-Object -FilterScript {
+                $_.MemberType -eq 'NoteProperty' 
+        }).Name | ForEach-Object -Process `
         {
             $Property[$_] = $ExceptionInfo."$_"
         }
@@ -65,7 +83,7 @@ Function New-Exception
         $Property['Type'] = $Type
         $Property['Message'] = $Message
     }
-    return ($Property | ConvertTo-JSON)
+    return ($Property | ConvertTo-Json -Compress)
 }
 
 <#
@@ -79,7 +97,7 @@ Function New-Exception
 Function Convert-ExceptionToString
 {
     Param(
-        [Parameter(Mandatory=$True)]
+        [Parameter(Mandatory = $True)]
         [Object]
         $Exception
     )
@@ -94,21 +112,26 @@ Function Convert-ExceptionToString
         #
         # We also need to filter out the InnerException property, since nested exceptions
         # will be handled by the outer loop.
-        $ExceptionInfo | Get-Member | Where-Object -FilterScript { $_.MemberType -eq 'NoteProperty' } |
-            Where-Object -FilterScript { $_.Name -ne 'InnerException' } |
-            ForEach-Object -Process `
+        $ExceptionInfo |
+        Get-Member |
+        Where-Object -FilterScript {
+            $_.MemberType -eq 'NoteProperty' 
+        } |
+        Where-Object -FilterScript {
+            $_.Name -ne 'InnerException' 
+        } |
+        ForEach-Object -Process {
+            $PropertyName = $_.Name
+            if(-not [String]::IsNullOrEmpty($ExceptionInfo."$PropertyName"))
             {
-                $PropertyName = $_.Name
-                if(-not [String]::IsNullOrEmpty($ExceptionInfo."$PropertyName"))
-                {
-                    $ExceptionString.AppendLine("$PropertyName = $($ExceptionInfo."$PropertyName")") | Out-Null
-                }
+                $null = $ExceptionString.AppendLine("$PropertyName = $($ExceptionInfo."$PropertyName")")
             }
+        }
         if($ExceptionInfo.InnerException)
         {
-            $ExceptionString.AppendLine('') | Out-Null
-            $ExceptionString.AppendLine('Which was raised from:') | Out-Null
-            $ExceptionString.AppendLine('') | Out-Null
+            $null = $ExceptionString.AppendLine('')
+            $null = $ExceptionString.AppendLine('Which was raised from:')
+            $null = $ExceptionString.AppendLine('')
         }
         $ExceptionInfo = $ExceptionInfo.InnerException
     }
@@ -116,16 +139,16 @@ Function Convert-ExceptionToString
 }
 
 <#
-.SYNOPSIS
+    .SYNOPSIS
     Returns the exception information for an exception.
 
-.PARAMETER Exception
+    .PARAMETER Exception
     The exception whose information should be returned.
 #>
 Function Get-ExceptionInfo
 {
     Param(
-        [Parameter(Mandatory=$True)]
+        [Parameter(Mandatory = $True)]
         [Object]
         $Exception
     )
@@ -148,15 +171,15 @@ Function Get-ExceptionInfo
             #
             # Values will only be included if they are not null.
             $Property = @{
-                'Type'                  = $Exception.GetType().FullName -replace '^Deserialized\.', '';
-                'Message'               = $Exception.Message;
-                'FullyQualifiedErrorId' = $Exception.FullyQualifiedErrorId;
-                'HResult'               = $Exception.HResult;
-                'ScriptBlock'           = $Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock;
-                'PositionMessage'       = $Exception.SerializedRemoteInvocationInfo.PositionMessage;
-                'ScriptStackTrace'      = $Exception.ScriptStackTrace;
-                'StackTrace'            = $Exception.StackTrace;
-                'InnerException'        = $null;
+                'Type' = $Exception.GetType().FullName -replace '^Deserialized\.', ''
+                'Message' = $Exception.Message
+                'FullyQualifiedErrorId' = $Exception.FullyQualifiedErrorId
+                'HResult' = $Exception.HResult
+                'ScriptBlock' = $Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock
+                'PositionMessage' = $Exception.SerializedRemoteInvocationInfo.PositionMessage
+                'ScriptStackTrace' = $Exception.ScriptStackTrace
+                'StackTrace' = $Exception.StackTrace
+                'InnerException' = $null
             }
             $ExceptionInfo = New-Object -TypeName 'PSObject' -Property $Property
         }
@@ -171,8 +194,8 @@ Function Get-ExceptionInfo
         }
 
         $PreviousExceptionInfo = $ExceptionInfo
-        $Exception = Select-FirstValid -Value $Exception.Exception,
-                                              $Exception.InnerException,
+        $Exception = Select-FirstValid -Value $Exception.Exception, 
+                                              $Exception.InnerException, 
                                               $Exception.SerializedRemoteException
     }
     return $TopLevelExceptionInfo
@@ -190,7 +213,7 @@ Function Get-ExceptionInfo
 Function Select-CustomException
 {
     param(
-        [Parameter(Mandatory=$True)]
+        [Parameter(Mandatory = $True)]
         [Object]
         $Exception
     )
@@ -229,9 +252,13 @@ Function Select-CustomException
 #>
 Function Select-RelevantException
 {
-    Param([Parameter(Mandatory=$True)] $RootException)
+    Param(
+        [Parameter(Mandatory = $True)]
+        $RootException
+    )
     $InnerException = $RootException.Exception
-    $BlacklistedExceptions = [System.Management.Automation.ErrorRecord], [System.Management.Automation.MethodInvocationException], `
+    $BlacklistedExceptions = [System.Management.Automation.ErrorRecord],
+                             [System.Management.Automation.MethodInvocationException],
                              [System.Management.Automation.CmdletInvocationException]
     While(($InnerException.GetType() -in $BlacklistedExceptions) -and $InnerException.InnerException)
     {
@@ -280,10 +307,21 @@ Function Select-RelevantException
 Function Throw-Exception
 {
     param(
-        [Parameter(Mandatory=$True, ParameterSetName='Values')]  [String] $Type,
-        [Parameter(Mandatory=$True, ParameterSetName='Values')]  [String] $Message,
-        [Parameter(Mandatory=$False, ParameterSetName='Values')] [Hashtable] $Property = @{},
-        [Parameter(Mandatory=$True, ParameterSetName='ExceptionInfo')] [Object] $ExceptionInfo
+        [Parameter(Mandatory = $True, ParameterSetName = 'Values')]
+        [String]
+        $Type,
+
+        [Parameter(Mandatory = $True, ParameterSetName = 'Values')]
+        [String]
+        $Message,
+
+        [Parameter(Mandatory = $False, ParameterSetName = 'Values')]
+        [Hashtable]
+        $Property = @{},
+
+        [Parameter(Mandatory = $True, ParameterSetName = 'ExceptionInfo')]
+        [Object]
+        $ExceptionInfo
     )
     if($ExceptionInfo)
     {
@@ -295,4 +333,4 @@ Function Throw-Exception
     }
 }
 
-Export-ModuleMember -Function * -Verbose:$false
+Export-ModuleMember -Function * -Verbose:$False
