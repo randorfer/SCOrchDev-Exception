@@ -82,6 +82,7 @@ Function New-Exception
         $Property['__CUSTOM_EXCEPTION__'] = $True
         $Property['Type'] = $Type
         $Property['Message'] = $Message
+        $Property['InnerException'] = $null
     }
     return ($Property | ConvertTo-Json -Compress)
 }
@@ -139,10 +140,10 @@ Function Convert-ExceptionToString
 }
 
 <#
-    .SYNOPSIS
+.SYNOPSIS
     Returns the exception information for an exception.
 
-    .PARAMETER Exception
+.PARAMETER Exception
     The exception whose information should be returned.
 #>
 Function Get-ExceptionInfo
@@ -218,18 +219,22 @@ Function Select-CustomException
         $Exception
     )
 
-    $TestString = ($Exception -as [String])
-    try
+    $TestString = @(($Exception -as [String]), ($Exception.Message -as [String]))
+    
+    Foreach($_TestString in $TestString)
     {
-        $ExceptionObject = ConvertFrom-Json -InputObject $TestString
-        if($ExceptionObject.'__CUSTOM_EXCEPTION__')
+        try
         {
-            return $TestString
+            $ExceptionObject = ConvertFrom-Json -InputObject $_TestString
+            if($ExceptionObject.'__CUSTOM_EXCEPTION__')
+            {
+                return $_TestString
+            }
         }
-    }
-    catch [System.ArgumentException]
-    {
-        # It's not valid JSON, do nothing.
+        catch [System.ArgumentException]
+        {
+            # It's not valid JSON, do nothing.
+        }
     }
 }
 

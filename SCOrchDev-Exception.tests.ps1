@@ -122,3 +122,76 @@ Describe 'Style rules' {
         }
     }
 }
+Describe 'Select-CustomException'{
+    $ExceptionOutput = '{"__CUSTOM_EXCEPTION__":true,"Message":"a","InnerException":null,"Type":"a"}'
+    Context 'PSScript' {
+        Function Test-SelectCustomException
+        {
+            try { Throw-Exception -Type 'a' -Message 'a' } catch { Select-CustomException -Exception $_ }
+        }
+        Function Test-SelectNonCustomException
+        {
+            try { Throw 'a' } catch { Select-CustomException -Exception $_ }
+        }
+        It 'Should Detect custom exceptions' {
+            Test-SelectCustomException | Should Be $ExceptionOutput
+        }
+        It 'Should ignore non custom exceptions' {
+            Test-SelectNonCustomException | Should BeNullOrEmpty
+        }
+    }
+    Context 'PSWorkflow' {
+        Workflow Test-SelectCustomException
+        {
+            try { Throw-Exception -Type 'a' -Message 'a' } catch { Select-CustomException -Exception $_ }
+        }
+        Workflow Test-SelectNonCustomException
+        {
+            try { Throw 'a' } catch { Select-CustomException -Exception $_ }
+        }
+        It 'Should Detect custom exceptions' {
+            Test-SelectCustomException | Should Be $ExceptionOutput
+        }
+        It 'Should ignore non custom exceptions' {
+            Test-SelectNonCustomException | Should BeNullOrEmpty
+        }
+    }
+}
+Describe 'Get ExceptionInfo' {
+    Context 'PSScript' {
+        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"},"Type":"a"}'
+        $NonCustomOutputJSON = '{"Message":null,"Type":"System.Management.Automation.ErrorRecord","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":{"Message":"a","Type":"System.Management.Automation.RuntimeException","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":null,"HResult":-2146233087,"ScriptStackTrace":null,"FullyQualifiedErrorId":null},"HResult":null,"ScriptStackTrace":"at Test-GetExceptionInfoNonCustomException, \u003cNo file\u003e: line 3\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1","FullyQualifiedErrorId":"a"}'
+        Function Test-GetExceptionInfoCustomException
+        {
+            try { Throw-Exception -Type 'a' -Message 'b' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+        }
+        Function Test-GetExceptionInfoNonCustomException
+        {
+            try { Throw 'a' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+        }
+        It 'Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
+            Test-GetExceptionInfoCustomException | Should Be $CustomOutputJSON
+        }
+        It 'Non Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
+            Test-GetExceptionInfoNonCustomException | Should Match $NonCustomOutputJSON
+        }
+    }
+    Context 'PSWorkflow' {
+        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"},"Type":"a"}'
+        $NonCustomOutputJSON = '{"Message":null,"Type":"System.Management.Automation.ErrorRecord","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":{"Message":"a","Type":"System.Management.Automation.RuntimeException","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":null,"HResult":-2146233087,"ScriptStackTrace":null,"FullyQualifiedErrorId":null},"HResult":null,"ScriptStackTrace":"at Test-GetExceptionInfoNonCustomException, \u003cNo file\u003e: line 3\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1","FullyQualifiedErrorId":"a"}'
+        Function Test-GetExceptionInfoCustomException
+        {
+            try { Throw-Exception -Type 'a' -Message 'b' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+        }
+        Function Test-GetExceptionInfoNonCustomException
+        {
+            try { Throw 'a' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+        }
+        It 'Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
+            Test-GetExceptionInfoCustomException | Should Be $CustomOutputJSON
+        }
+        It 'Non Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
+            Test-GetExceptionInfoNonCustomException | Should Match $NonCustomOutputJSON
+        }
+    }
+}
