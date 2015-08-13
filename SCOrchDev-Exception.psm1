@@ -157,6 +157,14 @@ Function Get-ExceptionInfo
     $Property = @{}
     $TopLevelExceptionInfo = $null
     $PreviousExceptionInfo = $null
+    While($Exception.GetType().FullName -eq 'System.Management.Automation.ErrorRecord' -or
+          $Exception.GetType().FullName -eq 'System.Management.Automation.RemoteException' -or 
+          $Exception.SerializedRemoteException -as [bool])
+    {
+        $Exception = Select-FirstValid -Value $Exception.Exception, 
+                                              $Exception.InnerException, 
+                                              $Exception.SerializedRemoteException
+    }
     while($Exception -ne $null)
     {
         $CustomException = Select-CustomException -Exception $Exception 
@@ -196,8 +204,7 @@ Function Get-ExceptionInfo
 
         $PreviousExceptionInfo = $ExceptionInfo
         $Exception = Select-FirstValid -Value $Exception.Exception, 
-                                              $Exception.InnerException, 
-                                              $Exception.SerializedRemoteException
+                                              $Exception.InnerException
     }
     return $TopLevelExceptionInfo
 }

@@ -25,15 +25,20 @@ Describe -Tags 'VersionChecks' 'SCOrchDev-Exception manifest' {
     if (Get-Command git.exe -ErrorAction SilentlyContinue) {
         $script:tagVersion = $null
         It 'is tagged with a valid version' {
+            $cwd = get-location
+            Set-Location ($Path -as [System.IO.FileInfo]).Directory
             $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
-
+            Set-Location $cwd
             if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
             {
                 $script:tagVersion = $matches[1]
             }
 
+            
+
             $script:tagVersion                  | Should Not BeNullOrEmpty
             $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
+            
         }
 
         It 'all versions are the same' {
@@ -159,8 +164,8 @@ Describe 'Select-CustomException'{
 }
 Describe 'Get ExceptionInfo' {
     Context 'PSScript' {
-        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"},"Type":"a"}'
-        $NonCustomOutputJSON = '{"Message":null,"Type":"System.Management.Automation.ErrorRecord","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":{"Message":"a","Type":"System.Management.Automation.RuntimeException","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":null,"HResult":-2146233087,"ScriptStackTrace":null,"FullyQualifiedErrorId":null},"HResult":null,"ScriptStackTrace":"at Test-GetExceptionInfoNonCustomException, \u003cNo file\u003e: line 3\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1","FullyQualifiedErrorId":"a"}'
+        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"}'
+        $NonCustomOutputJSON = '{"Message":"a","Type":"System.Management.Automation.RuntimeException","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":null,"HResult":-2146233087,"ScriptStackTrace":null,"FullyQualifiedErrorId":null}'
         Function Test-GetExceptionInfoCustomException
         {
             try { Throw-Exception -Type 'a' -Message 'b' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
@@ -173,25 +178,25 @@ Describe 'Get ExceptionInfo' {
             Test-GetExceptionInfoCustomException | Should Be $CustomOutputJSON
         }
         It 'Non Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoNonCustomException | Should Match $NonCustomOutputJSON
+            Test-GetExceptionInfoNonCustomException | Should Be $NonCustomOutputJSON
         }
     }
     Context 'PSWorkflow' {
-        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"},"Type":"a"}'
-        $NonCustomOutputJSON = '{"Message":null,"Type":"System.Management.Automation.ErrorRecord","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":{"Message":"a","Type":"System.Management.Automation.RuntimeException","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":null,"HResult":-2146233087,"ScriptStackTrace":null,"FullyQualifiedErrorId":null},"HResult":null,"ScriptStackTrace":"at Test-GetExceptionInfoNonCustomException, \u003cNo file\u003e: line 3\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1","FullyQualifiedErrorId":"a"}'
-        Function Test-GetExceptionInfoCustomException
+        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"'
+        $NonCustomOutputJSON = '{"Message":"a"'
+        Workflow Test-GetExceptionInfoCustomException
         {
             try { Throw-Exception -Type 'a' -Message 'b' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
         }
-        Function Test-GetExceptionInfoNonCustomException
+        Workflow Test-GetExceptionInfoNonCustomException
         {
             try { Throw 'a' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
         }
         It 'Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoCustomException | Should Be $CustomOutputJSON
+            Test-GetExceptionInfoCustomException | Should Match "^$CustomOutputJSON"
         }
         It 'Non Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoNonCustomException | Should Match $NonCustomOutputJSON
+            Test-GetExceptionInfoNonCustomException | Should Match "^$NonCustomOutputJSON"
         }
     }
 }
