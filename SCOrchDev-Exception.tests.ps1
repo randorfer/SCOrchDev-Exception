@@ -164,39 +164,49 @@ Describe 'Select-CustomException'{
 }
 Describe 'Get ExceptionInfo' {
     Context 'PSScript' {
-        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"}'
-        $NonCustomOutputJSON = '{"Message":"a","Type":"System.Management.Automation.RuntimeException","StackTrace":null,"PositionMessage":null,"ScriptBlock":null,"InnerException":null,"HResult":-2146233087,"ScriptStackTrace":null,"FullyQualifiedErrorId":null}'
+        $Message = 'a'
+        $Type = 'b'
         Function Test-GetExceptionInfoCustomException
         {
-            try { Throw-Exception -Type 'a' -Message 'b' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+            Param($Message, $Type)
+            try { Throw-Exception -Type $Type -Message $Message } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
         }
         Function Test-GetExceptionInfoNonCustomException
         {
-            try { Throw 'a' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+            Param($Message)
+            try { Throw $Message } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
         }
-        It 'Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoCustomException | Should Be $CustomOutputJSON
+        It 'Custom Exceptions should retain the mesage thrown when intertpreted by Get-ExceptionInfo' {
+            (Test-GetExceptionInfoCustomException -Message $Message -Type $Type | ConvertFrom-JSON).Message | Should Be $Message
         }
-        It 'Non Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoNonCustomException | Should Be $NonCustomOutputJSON
+        It 'Custom Exceptions should retain their type when intertpreted by Get-ExceptionInfo' {
+            (Test-GetExceptionInfoCustomException -Message $Message -Type $Type | ConvertFrom-JSON).Type | Should Be $Type
+        }
+        It 'Non Custom Exceptions should retain the mesage thrown when intertpreted by Get-ExceptionInfo' {
+            (Test-GetExceptionInfoNonCustomException -Message $Message | ConvertFrom-JSON).Message | Should Be $Message
         }
     }
     Context 'PSWorkflow' {
-        $CustomOutputJSON = '{"__CUSTOM_EXCEPTION__":true,"Message":"b","InnerException":null,"Type":"a"'
-        $NonCustomOutputJSON = '{"Message":"a"'
+        $Message = 'a'
+        $Type = 'b'
         Workflow Test-GetExceptionInfoCustomException
         {
-            try { Throw-Exception -Type 'a' -Message 'b' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+            Param($Message, $Type)
+            try { Throw-Exception -Type $Type -Message $Message } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
         }
         Workflow Test-GetExceptionInfoNonCustomException
         {
-            try { Throw 'a' } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
+            Param($Message)
+            try { Throw $Message } catch { Get-ExceptionInfo -Exception $_ | ConvertTo-JSON -Compress }
         }
-        It 'Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoCustomException | Should Match "^$CustomOutputJSON"
+        It 'Custom Exceptions should retain the mesage thrown when intertpreted by Get-ExceptionInfo' {
+            (Test-GetExceptionInfoCustomException -Message $Message -Type $Type | ConvertFrom-JSON).Message | Should Be $Message
         }
-        It 'Non Custom Exceptions should be interpreted correctly by Get-ExceptionInfo' {
-            Test-GetExceptionInfoNonCustomException | Should Match "^$NonCustomOutputJSON"
+        It 'Custom Exceptions should retain their type when intertpreted by Get-ExceptionInfo' {
+            (Test-GetExceptionInfoCustomException -Message $Message -Type $Type | ConvertFrom-JSON).Type | Should Be $Type
+        }
+        It 'Non Custom Exceptions should retain the mesage thrown when intertpreted by Get-ExceptionInfo' {
+            (Test-GetExceptionInfoNonCustomException -Message $Message | ConvertFrom-JSON).Message | Should Be $Message
         }
     }
 }

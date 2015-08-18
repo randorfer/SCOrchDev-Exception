@@ -206,6 +206,15 @@ Function Get-ExceptionInfo
         $Exception = Select-FirstValid -Value $Exception.Exception, 
                                               $Exception.InnerException
     }
+    try
+    {
+        Add-Member -InputObject $TopLevelExceptionInfo `
+                   -MemberType NoteProperty `
+                   -Name 'PSCallStack' `
+                   -Value ((Get-PSCallStack) | ConvertTo-JSON)
+    }
+    catch
+    { }
     return $TopLevelExceptionInfo
 }
 
