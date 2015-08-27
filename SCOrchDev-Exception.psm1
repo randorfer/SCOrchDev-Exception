@@ -220,7 +220,7 @@ Function Get-ExceptionInfo
         Add-Member -InputObject $TopLevelExceptionInfo `
                    -MemberType NoteProperty `
                    -Name 'PSCallStack' `
-                   -Value ((Get-PSCallStack) | Where-Object -FilterScript { $_.ScriptName -notlike 'SCOrchDev-Exception.psm1' } | ConvertTo-JSON)
+                   -Value ((Get-PSCallStack) | Where-Object -FilterScript { $_.ScriptName -notlike '*SCOrchDev-Exception.psm1' } | ConvertTo-JSON)
     }
     catch
     { }
