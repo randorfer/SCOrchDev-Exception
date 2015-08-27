@@ -161,8 +161,8 @@ Function Get-ExceptionInfo
     $ExceptionHolder = $Exception
     try
     {
-        While($Exception.GetType().FullName -eq 'System.Management.Automation.ErrorRecord' -or
-              $Exception.GetType().FullName -eq 'System.Management.Automation.RemoteException' -or 
+        While($Exception.Exception -as [bool] -or
+              $Exception.InnerException -as [bool] -or 
               $Exception.SerializedRemoteException -as [bool])
         {
             $Exception = Select-FirstValid -Value $Exception.Exception, 
