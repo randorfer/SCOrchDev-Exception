@@ -150,6 +150,7 @@ Function Get-ExceptionInfo
 {
     Param(
         [Parameter(Mandatory = $True)]
+        [AllowNull()]
         [Object]
         $Exception
     )
