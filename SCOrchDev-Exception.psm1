@@ -149,7 +149,10 @@ Function Convert-ExceptionToString
 Function Get-ExceptionInfo
 {
     Param(
-        [Parameter(Mandatory = $True)]
+        [Parameter(
+            Mandatory = $True,
+            ValueFromPipeline = $True
+        )]
         [AllowNull()]
         [Object]
         $Exception
@@ -158,22 +161,6 @@ Function Get-ExceptionInfo
     $Property = @{}
     $TopLevelExceptionInfo = $null
     $PreviousExceptionInfo = $null
-    $ExceptionHolder = $Exception
-    try
-    {
-        While($Exception.Exception -as [bool] -or
-              $Exception.InnerException -as [bool] -or 
-              $Exception.SerializedRemoteException -as [bool])
-        {
-            $Exception = Select-FirstValid -Value $Exception.Exception, 
-                                                  $Exception.InnerException, 
-                                                  $Exception.SerializedRemoteException
-        }
-    }
-    catch
-    {
-        $Exception = $ExceptionHolder
-    }
     while($Exception -ne $null)
     {
         $CustomException = Select-CustomException -Exception $Exception 
@@ -190,11 +177,11 @@ Function Get-ExceptionInfo
             # Values will only be included if they are not null.
             $Property = @{
                 'Type' = $Exception.GetType().FullName -replace '^Deserialized\.', ''
-                'Message' = $Exception.Message
+                'Message' = Select-FirstValid @($Exception.Message,$Exception.Exception.Message,$Exception.InnerException.Message,$Exception.SerializedRemoteException.Message)
                 'FullyQualifiedErrorId' = $Exception.FullyQualifiedErrorId
                 'HResult' = $Exception.HResult
-                'ScriptBlock' = $Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock
-                'PositionMessage' = $Exception.SerializedRemoteInvocationInfo.PositionMessage
+                'ScriptBlock' = Select-FirstValid @($Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock,$Exception.InvocationInfo.MyCommand.ScriptBlock)
+                'PositionMessage' = Select-FirstValid @($Exception.SerializedRemoteInvocationInfo.PositionMessage,$Exception.InvocationInfo.PositionMessage)
                 'ScriptStackTrace' = $Exception.ScriptStackTrace
                 'StackTrace' = $Exception.StackTrace
                 'InnerException' = $null
@@ -220,7 +207,7 @@ Function Get-ExceptionInfo
         Add-Member -InputObject $TopLevelExceptionInfo `
                    -MemberType NoteProperty `
                    -Name 'PSCallStack' `
-                   -Value ((Get-PSCallStack) | Where-Object -FilterScript { $_.ScriptName -notlike '*SCOrchDev-Exception.psm1' } | ConvertTo-JSON)
+                   -Value ((Get-PSCallStack) | Where-Object -FilterScript { $_.ScriptName -notlike '*-Exception.psm1' } | ConvertTo-JSON)
     }
     catch
     { }
