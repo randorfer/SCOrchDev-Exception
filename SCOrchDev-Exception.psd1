@@ -27,7 +27,75 @@ CompanyName = 'SCOrchDev'
 Copyright = '(c) SCOrchDev. All rights reserved.'
 
 # Description of the functionality provided by this module
-# Description = ''
+Description = @'
+Used for wrapping and handling custom exceptions.
+
+This is designed to make good error handling routines for enterprise automation like what is written for SMA.
+Using this library you can make routines (like below) that behave consistantly in PowerShell and PowerShell worfklow.
+The module also has functions for throwing meaningful errors to any PowerShell stream or converting an exception to a
+string for usage in other functions.
+
+Example:
+
+Function Test-Throw-Function
+{
+    try
+    {
+        Throw-Exception -Type 'CustomTypeA' `
+                        -Message 'MessageA' `
+                        -Property @{
+                            'a' = 'b'
+                        }
+    }
+    catch
+    {
+        $Exception = $_
+        $ExceptionInfo = Get-ExceptionInfo -Exception $Exception
+        Switch -CaseSensitive ($ExceptionInfo.Type)
+        {
+            'CustomTypeA'
+            {
+                Write-Exception -Exception $Exception -Stream Verbose
+                $a = $_
+            }
+            Default
+            {
+                Write-Warning -Message 'unhandled' -WarningAction Continue
+            }
+        }
+    }
+}
+
+
+Workflow Test-Throw-Workflow
+{
+    try
+    {
+        Throw-Exception -Type 'CustomTypeA' `
+                        -Message 'MessageA' `
+                        -Property @{
+                            'a' = 'b'
+                        }
+    }
+    catch
+    {
+        $Exception = $_
+        $ExceptionInfo = Get-ExceptionInfo -Exception $Exception
+        Switch -CaseSensitive ($ExceptionInfo.Type)
+        {
+            'CustomTypeA'
+            {
+                Write-Exception -Exception $Exception -Stream Verbose
+                $a = $_
+            }
+            Default
+            {
+                Write-Warning -Message 'unhandled' -WarningAction Continue
+            }
+        }
+    }
+}
+'@
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '4.0'
