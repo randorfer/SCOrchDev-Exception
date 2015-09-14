@@ -1,7 +1,7 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath = "$here\SCOrchDev-Exception.psd1"
-
+Import-Module $manifestPath -Force
 Describe -Tags 'VersionChecks' 'SCOrchDev-Exception manifest' {
     $script:manifest = $null
     It 'has a valid manifest' {
