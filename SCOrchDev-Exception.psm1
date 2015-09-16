@@ -106,7 +106,7 @@ Function Convert-ExceptionToString
     $ExceptionString = New-Object -TypeName 'System.Text.StringBuilder'
 
     $ExceptionInfo = Get-ExceptionInfo -Exception $Exception
-    while($ExceptionInfo -ne $null)
+    while($null -ne $ExceptionInfo)
     {
         # NoteProperty properties contain all the properties from the exception that
         # we care about, so filter on those.
@@ -161,7 +161,7 @@ Function Get-ExceptionInfo
     $Property = @{}
     $TopLevelExceptionInfo = $null
     $PreviousExceptionInfo = $null
-    while($Exception -ne $null)
+    while($null -ne $Exception)
     {
         $CustomException = Select-CustomException -Exception $Exception 
         if($CustomException)
@@ -177,11 +177,11 @@ Function Get-ExceptionInfo
             # Values will only be included if they are not null.
             $Property = @{
                 'Type' = $Exception.GetType().FullName -replace '^Deserialized\.', ''
-                'Message' = Select-FirstValid @($Exception.Message,$Exception.Exception.Message,$Exception.InnerException.Message,$Exception.SerializedRemoteException.Message)
+                'Message' = Select-FirstValid -Value @($Exception.Message,$Exception.Exception.Message,$Exception.InnerException.Message,$Exception.SerializedRemoteException.Message)
                 'FullyQualifiedErrorId' = $Exception.FullyQualifiedErrorId
                 'HResult' = $Exception.HResult
-                'ScriptBlock' = Select-FirstValid @($Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock,$Exception.InvocationInfo.MyCommand.ScriptBlock)
-                'PositionMessage' = Select-FirstValid @($Exception.SerializedRemoteInvocationInfo.PositionMessage,$Exception.InvocationInfo.PositionMessage)
+                'ScriptBlock' = Select-FirstValid -Value @($Exception.SerializedRemoteInvocationInfo.MyCommand.ScriptBlock,$Exception.InvocationInfo.MyCommand.ScriptBlock)
+                'PositionMessage' = Select-FirstValid -Value @($Exception.SerializedRemoteInvocationInfo.PositionMessage,$Exception.InvocationInfo.PositionMessage)
                 'ScriptStackTrace' = $Exception.ScriptStackTrace
                 'StackTrace' = $Exception.StackTrace
                 'InnerException' = $null
@@ -210,7 +210,9 @@ Function Get-ExceptionInfo
                    -Value ((Get-PSCallStack) | Where-Object -FilterScript { $_.ScriptName -notlike '*-Exception.psm1' } | ConvertTo-JSON)
     }
     catch
-    { }
+    {
+        Write-Debug -Message 'Error adding call stack'
+    }
     return $TopLevelExceptionInfo
 }
 
@@ -245,7 +247,7 @@ Function Select-CustomException
         }
         catch [System.ArgumentException]
         {
-            # It's not valid JSON, do nothing.
+            Write-Debug -Message 'Non custom error found'
         }
     }
 }
