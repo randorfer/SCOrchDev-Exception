@@ -1,4 +1,4 @@
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath = "$here\SCOrchDev-Exception.psd1"
 Import-Module $manifestPath -Force

@@ -1,4 +1,4 @@
-# SCOrchDev-Exception
+﻿# SCOrchDev-Exception
 PowerShell module for wrapping and handling custom exceptions!
 
 The way that powershell handles exceptions is a bit akward if you come from another language and is inconsistant between powershell and powershell workflow, which makes good error handling routines hard to write and support for enterprise automation like what is written for SMA. Using this library you can make routines (like below) that behave the same way in PowerShell and PowerShell worfklow
