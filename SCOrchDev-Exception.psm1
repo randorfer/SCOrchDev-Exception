@@ -16,7 +16,7 @@ Function Write-Exception
 
         [Parameter(Mandatory = $False)]
         [ValidateSet('Debug', 'Error', 'Verbose', 'Warning')]
-        $Stream = 'Error'
+        $Stream = 'Warning'
     )
     $LogCommand = (Get-Command -Name "Write-$Stream")
     $ExceptionString = Convert-ExceptionToString -Exception $Exception

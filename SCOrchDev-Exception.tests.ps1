@@ -1,7 +1,7 @@
 ﻿$here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath = "$here\SCOrchDev-Exception.psd1"
-Import-Module $manifestPath -Force
+Import-Module SCOrchDev-Exception -Force
 Describe -Tags 'VersionChecks' 'SCOrchDev-Exception manifest' {
     $script:manifest = $null
     It 'has a valid manifest' {
@@ -207,6 +207,76 @@ Describe 'Get ExceptionInfo' {
         }
         It 'Non Custom Exceptions should retain the mesage thrown when intertpreted by Get-ExceptionInfo' {
             (Test-GetExceptionInfoNonCustomException -Message $Message | ConvertFrom-JSON).Message | Should Be $Message
+        }
+    }
+}
+Describe 'Write-Exception' {
+    InModuleScope ScorchDev-Exception {
+        Mock Write-Warning {
+            Param(
+                $Message
+            )
+            'Warning'
+        }
+        Mock Write-Verbose {
+            Param(
+                $Message
+            )
+            'Verbose'
+        }
+        Mock Write-Error {
+            Param(
+                $Message
+            )
+            'Error'
+        }
+        Mock Write-Debug {
+            Param(
+                $Message
+            )
+            'Debug'
+        } -ParameterFilter { $Message -like 'Exception information*' }
+        Context 'PowerShell Script' {
+            Function Test-WriteException 
+            {
+                Param($ExceptionType, $ExceptionMessage, $ExceptionProperty, $Stream)
+                
+                Try
+                {
+                    Throw-Exception -Type 'a' -Message 'b'
+                }
+                Catch
+                {
+                    if($Stream -as [bool])
+                    {
+                        Write-Exception -Exception $_ -Stream $Stream
+                    }
+                    else
+                    {
+                        Write-Exception -Exception $_
+                    }
+                }
+            }
+
+            It 'Should write to the warning stream properly'{
+                Test-WriteException @TestParams -Stream Warning | Should Be 'Warning'
+            }
+
+            It 'Should write to the verbose stream properly'{
+                Test-WriteException @TestParams -Stream Verbose | Should Be 'Verbose'
+            }
+
+            It 'Should write to the debug stream properly'{
+                Test-WriteException @TestParams -Stream Debug | Should Be 'Debug'
+            }
+
+            It 'Should write to the error stream properly'{
+                Test-WriteException @TestParams -Stream Error | Should Be 'Error'
+            }
+
+            It 'Should write to the warning stream if no stream is specified'{
+                Test-WriteException @TestParams | Should Be 'Warning'
+            }
         }
     }
 }
