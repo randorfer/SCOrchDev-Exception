@@ -34,8 +34,6 @@ Describe -Tags 'VersionChecks' 'SCOrchDev-Exception manifest' {
                 $script:tagVersion = $matches[1]
             }
 
-            
-
             $script:tagVersion                  | Should Not BeNullOrEmpty
             $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
             
@@ -128,7 +126,7 @@ Describe 'Style rules' {
     }
 }
 Describe 'Select-CustomException'{
-    $ExceptionOutput = '{"__CUSTOM_EXCEPTION__":true,"Message":"a","InnerException":null,"Type":"a"}'
+    $ExceptionOutput = '{"__CUSTOM_EXCEPTION__":true,"InnerException":null,"Message":"a","FullyQualifiedErrorId":"a","Type":"a"}'
     Context 'PSScript' {
         Function Test-SelectCustomException
         {
