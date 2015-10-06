@@ -81,6 +81,7 @@ Function New-Exception
         $Property = $Property.Clone()
         $Property['__CUSTOM_EXCEPTION__'] = $True
         $Property['Type'] = $Type
+        $Property['FullyQualifiedErrorId'] = $Type
         $Property['Message'] = $Message
         $Property['InnerException'] = $null
     }
