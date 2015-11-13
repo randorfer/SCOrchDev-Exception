@@ -221,7 +221,7 @@ Function Get-ExceptionInfo
 .SYNOPSIS
     Tests whether or not the exception is a custom exception as returned
     by New-Exception or thrown by Throw-Exception. If it is, returns the
-    custom exception string. Otherwise, returns $False.
+    custom exception string. Otherwise it returns $False.
 
 .PARAMETER Exception
     The exception which should be tested.
