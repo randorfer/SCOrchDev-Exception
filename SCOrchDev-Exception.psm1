@@ -324,7 +324,7 @@ Function Select-RelevantException
         }
     }
 #>
-Function New-Exception
+Function New-ThrownException
 {
     param(
         [Parameter(Mandatory = $True, ParameterSetName = 'Values')]
@@ -352,5 +352,5 @@ Function New-Exception
         throw New-Exception -Type $Type -Message $Message -Property $Property
     }
 }
-New-Alias -Name Throw-Exception -Value New-Exception
+Set-Alias -Name Throw-Exception -Value New-ThrownException
 Export-ModuleMember -Function * -Alias * -Verbose:$False
